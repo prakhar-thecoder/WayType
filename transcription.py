@@ -9,7 +9,7 @@ def create_groq_client() -> Groq:
     return Groq(api_key=config.GROQ_API_KEY)
 
 def transcribe_audio(client: Groq, file_path: Path) -> str:
-    print("Uploading to Whisper...", flush=True)
+    print("[Whisper] Uploading to Whisper...", flush=True)
     try:
         with file_path.open("rb") as audio_file:
             transcription = client.audio.transcriptions.create(
@@ -26,7 +26,7 @@ def format_transcript(client: Groq, raw_transcript: str) -> str:
     if not raw_transcript.strip():
         return raw_transcript
 
-    print("Formatting transcript...", flush=True)
+    print("[Formatter] Formatting transcript...", flush=True)
     try:
         response = client.chat.completions.create(
             model=config.FORMATTER_MODEL,

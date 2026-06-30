@@ -1,9 +1,24 @@
+import os
+import sys
 import wave
 import tempfile
 from collections import deque
 from contextlib import suppress
 from pathlib import Path
 from typing import Deque, Sequence
+
+class SuppressAlsaErr:
+    def __enter__(self):
+        self.devnull = os.open(os.devnull, os.O_WRONLY)
+        self.old_stderr = os.dup(sys.stderr.fileno())
+        sys.stderr.flush()
+        os.dup2(self.devnull, sys.stderr.fileno())
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        sys.stderr.flush()
+        os.dup2(self.old_stderr, sys.stderr.fileno())
+        os.close(self.old_stderr)
+        os.close(self.devnull)
 
 import pyaudio
 import webrtcvad
@@ -52,10 +67,11 @@ def record_until_silence(vad: webrtcvad.Vad) -> list[bytes]:
     silent_frame_count = 0
     silence_frame_limit = max(1, int(config.SILENCE_TIMEOUT * 1000 / config.FRAME_DURATION_MS))
 
-    audio = pyaudio.PyAudio()
+    with SuppressAlsaErr():
+        audio = pyaudio.PyAudio()
     stream = None
 
-    print("Listening...", flush=True)
+    print("[Audio] Listening...", flush=True)
 
     try:
         stream = audio.open(
@@ -77,8 +93,8 @@ def record_until_silence(vad: webrtcvad.Vad) -> list[bytes]:
             if not is_recording:
                 pre_buffer.append(frame)
                 if is_speech:
-                    print("Speech detected...", flush=True)
-                    print("Recording...", flush=True)
+                    print("[Audio] Speech detected...", flush=True)
+                    print("[Audio] Recording...", flush=True)
                     is_recording = True
                     recorded_frames.extend(pre_buffer)
                     silent_frame_count = 0
@@ -92,7 +108,7 @@ def record_until_silence(vad: webrtcvad.Vad) -> list[bytes]:
 
             silent_frame_count += 1
             if silent_frame_count >= silence_frame_limit:
-                print("Silence detected.", flush=True)
+                print("[Audio] Silence detected.", flush=True)
                 break
     except OSError as exc:
         raise RuntimeError(f"Audio device error: {exc}") from exc
