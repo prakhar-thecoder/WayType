@@ -2,3 +2,4 @@ pyaudio
 webrtcvad
 groq
 python-dotenv
+evdev
