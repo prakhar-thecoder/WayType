@@ -2,6 +2,14 @@ import os
 import json
 import socket
 import sys
+import subprocess
+from pathlib import Path
+
+BASE_DIR = Path(__file__).resolve().parent
+ASSETS_DIR = BASE_DIR / "assets"
+
+START_SOUND = ASSETS_DIR / "start.wav"
+COMPLETE_SOUND = ASSETS_DIR / "complete.wav"
 
 import gi
 gi.require_version('Gtk', '3.0')
@@ -63,18 +71,41 @@ class VoiceTypingDaemon:
         client.close()
         return False # Remove this client watch
 
+    def play_sound(self, sound: Path):
+        subprocess.Popen(
+            ["paplay", str(sound)],
+            stdout=subprocess.DEVNULL,
+            stderr=subprocess.DEVNULL,
+        )
+
     def update_ui(self, state):
         self.state = state
-        
+
         if state == "idle":
-            self.indicator.set_icon_full("audio-input-microphone-symbolic", "Idle")
-        else:
-            if state == "listening":
-                self.indicator.set_icon_full("media-record-symbolic", "Listening")
-            elif state == "processing":
-                self.indicator.set_icon_full("media-playback-start-symbolic", "Processing")
-            elif state == "pasting":
-                self.indicator.set_icon_full("edit-paste-symbolic", "Pasting")
+            self.indicator.set_icon_full(
+                "audio-input-microphone-symbolic",
+                "Idle"
+            )
+
+        elif state == "listening":
+            self.indicator.set_icon_full(
+                "media-record-symbolic",
+                "Listening"
+            )
+            self.play_sound(START_SOUND)
+
+        elif state == "processing":
+            self.indicator.set_icon_full(
+                "media-playback-start-symbolic",
+                "Processing"
+            )
+
+        elif state == "pasting":
+            self.indicator.set_icon_full(
+                "edit-paste-symbolic",
+                "Pasting"
+            )
+            self.play_sound(COMPLETE_SOUND)
 
     def run(self):
         Gtk.main()
