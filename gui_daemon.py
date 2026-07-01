@@ -23,7 +23,7 @@ SETTINGS_FILE = BASE_DIR / "settings.json"
 class VoiceTypingDaemon:
     def __init__(self):
         self.state = "idle"
-        self.settings = {"play_sounds": True, "show_notifications": True}
+        self.settings = {"play_sounds": True, "show_notifications": True, "format_text": True}
         self.load_settings()
         
         Notify.init("WayType")
@@ -102,8 +102,18 @@ class VoiceTypingDaemon:
         notif_box.pack_start(notif_label, False, False, 0)
         notif_box.pack_end(notif_switch, False, False, 0)
         
+        # Format Text Toggle
+        format_box = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=10)
+        format_label = Gtk.Label(label="Format Text")
+        format_switch = Gtk.Switch()
+        format_switch.set_active(self.settings.get("format_text", True))
+        format_switch.connect("notify::active", self.on_format_toggled)
+        format_box.pack_start(format_label, False, False, 0)
+        format_box.pack_end(format_switch, False, False, 0)
+        
         vbox.pack_start(sound_box, False, False, 0)
         vbox.pack_start(notif_box, False, False, 0)
+        vbox.pack_start(format_box, False, False, 0)
         
         window.add(vbox)
         window.show_all()
@@ -114,6 +124,10 @@ class VoiceTypingDaemon:
 
     def on_notif_toggled(self, switch, gparam):
         self.settings["show_notifications"] = switch.get_active()
+        self.save_settings()
+
+    def on_format_toggled(self, switch, gparam):
+        self.settings["format_text"] = switch.get_active()
         self.save_settings()
 
     def on_client_connect(self, source, condition):

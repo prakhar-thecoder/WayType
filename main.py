@@ -18,6 +18,16 @@ def notify_gui(state: str) -> None:
     except Exception:
         pass
 
+def load_settings() -> dict:
+    settings_file = Path(__file__).resolve().parent / "settings.json"
+    if settings_file.exists():
+        try:
+            with open(settings_file, "r") as f:
+                return json.load(f)
+        except Exception:
+            pass
+    return {}
+
 def main() -> int:
     pid_file = Path("/tmp/waytype.pid")
     stop_file = Path("/tmp/waytype.stop")
@@ -38,6 +48,9 @@ def main() -> int:
     try:
         with open(pid_file, "w") as f:
             f.write(str(os.getpid()))
+
+        settings = load_settings()
+        format_text = settings.get("format_text", True)
 
         client = transcription.create_groq_client()
         vad = audio.create_vad()
@@ -72,7 +85,11 @@ def main() -> int:
         t3 = time.time()
         print(f"[Latency] Transcription took {t3 - t2:.2f}s", flush=True)
 
-        final_transcript = transcription.format_transcript(client, raw_transcript)
+        if format_text:
+            final_transcript = transcription.format_transcript(client, raw_transcript)
+        else:
+            final_transcript = raw_transcript
+            
         t4 = time.time()
         print(f"[Latency] Formatting took {t4 - t3:.2f}s", flush=True)
 
