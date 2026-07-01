@@ -20,7 +20,7 @@ FORMATTER_MODEL = os.getenv("FORMATTER_MODEL", "meta-llama/llama-4-scout-17b-16e
 MAX_TOKENS = int(os.getenv("MAX_TOKENS", "8192"))
 TEMPERATURE = float(os.getenv("TEMPERATURE", "0.0"))
 
-TEMP_FILE_PREFIX = "voice_typing_"
+TEMP_FILE_PREFIX = "waytype_"
 TEMP_FILE_SUFFIX = ".wav"
 
 FORMATTER_SYSTEM_PROMPT = """

@@ -10,7 +10,7 @@ import wayland_typing
 def notify_gui(state: str) -> None:
     try:
         sock = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
-        sock.connect("/tmp/voice_typing_gui.sock")
+        sock.connect("/tmp/waytype_gui.sock")
         sock.sendall(json.dumps({"state": state}).encode("utf-8"))
         sock.close()
     except Exception:

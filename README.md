@@ -57,7 +57,7 @@ To get the System Tray icon and audio feedback, run the daemon as a systemd user
    cp systemd/waytype-daemon.service ~/.config/systemd/user/
    ```
 
-2. *(Optional)* If you cloned WayType to a location other than `/home/prakhar/Projects/voice-typing`, edit the `ExecStart` and `WorkingDirectory` paths in `~/.config/systemd/user/waytype-daemon.service`.
+2. *(Optional)* If you cloned WayType to a location other than `/home/prakhar/Projects/WayType`, edit the `ExecStart` and `WorkingDirectory` paths in `~/.config/systemd/user/waytype-daemon.service`.
 
 3. **Enable and start the service:**
    ```bash

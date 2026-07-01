@@ -17,7 +17,7 @@ gi.require_version('AyatanaAppIndicator3', '0.1')
 gi.require_version('Notify', '0.7')
 from gi.repository import Gtk, GLib, AyatanaAppIndicator3 as AppIndicator, Notify
 
-SOCKET_PATH = "/tmp/voice_typing_gui.sock"
+SOCKET_PATH = "/tmp/waytype_gui.sock"
 SETTINGS_FILE = BASE_DIR / "settings.json"
 
 class VoiceTypingDaemon:
@@ -30,7 +30,7 @@ class VoiceTypingDaemon:
 
         # Setup AppIndicator
         self.indicator = AppIndicator.Indicator.new(
-            "voice-typing-daemon",
+            "waytype-daemon",
             "audio-input-microphone-symbolic",
             AppIndicator.IndicatorCategory.APPLICATION_STATUS
         )

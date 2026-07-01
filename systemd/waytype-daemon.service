@@ -3,9 +3,9 @@ Description=WayType GUI Daemon
 After=graphical-session.target
 
 [Service]
-# NOTE: Replace /home/prakhar/Projects/voice-typing with the absolute path to your cloned repository.
-ExecStart=/usr/bin/python3 /home/prakhar/Projects/voice-typing/gui_daemon.py
-WorkingDirectory=/home/prakhar/Projects/voice-typing
+# NOTE: Replace /home/prakhar/Projects/WayType with the absolute path to your cloned repository.
+ExecStart=/usr/bin/python3 /home/prakhar/Projects/WayType/gui_daemon.py
+WorkingDirectory=/home/prakhar/Projects/WayType
 Restart=always
 RestartSec=3
 
