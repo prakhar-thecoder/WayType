@@ -1,7 +1,9 @@
+import os
 import time
 import socket
 import json
 from pathlib import Path
+from contextlib import suppress
 
 import audio
 import transcription
@@ -17,15 +19,36 @@ def notify_gui(state: str) -> None:
         pass
 
 def main() -> int:
+    pid_file = Path("/tmp/waytype.pid")
+    stop_file = Path("/tmp/waytype.stop")
+    
+    if pid_file.exists():
+        try:
+            with open(pid_file, "r") as f:
+                pid = int(f.read().strip())
+            os.kill(pid, 0) # Check if process exists
+            stop_file.touch()
+            print("Stop signal sent to running instance.", flush=True)
+            return 0
+        except (ProcessLookupError, ValueError):
+            pass
+
     temp_path: Path | None = None
 
     try:
+        with open(pid_file, "w") as f:
+            f.write(str(os.getpid()))
+
         client = transcription.create_groq_client()
         vad = audio.create_vad()
 
         notify_gui("listening")
         t0 = time.time()
         recorded_frames = audio.record_until_silence(vad)
+        
+        with suppress(FileNotFoundError):
+            pid_file.unlink()
+            
         t1 = time.time()
         print(f"[Latency] Recording took {t1 - t0:.2f}s", flush=True)
 
@@ -77,6 +100,10 @@ def main() -> int:
         notify_gui("idle")
         return 1
     finally:
+        with suppress(FileNotFoundError):
+            pid_file.unlink()
+        with suppress(FileNotFoundError):
+            stop_file.unlink()
         audio.cleanup(temp_path)
 
 if __name__ == "__main__":

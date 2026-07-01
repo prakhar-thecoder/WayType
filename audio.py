@@ -83,6 +83,12 @@ def record_until_silence(vad: webrtcvad.Vad) -> list[bytes]:
         )
 
         while True:
+            if os.path.exists("/tmp/waytype.stop"):
+                print("[Audio] Stop signal received.", flush=True)
+                with suppress(FileNotFoundError):
+                    os.remove("/tmp/waytype.stop")
+                break
+
             try:
                 frame = stream.read(config.CHUNK_SIZE, exception_on_overflow=False)
             except OSError as exc:
