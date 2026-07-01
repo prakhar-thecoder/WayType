@@ -1,3 +1,5 @@
+import os
+import json
 from pathlib import Path
 from groq import Groq
 
@@ -32,12 +34,18 @@ def format_transcript(client: Groq, raw_transcript: str) -> str:
             model=config.FORMATTER_MODEL,
             temperature=config.TEMPERATURE,
             max_tokens=config.MAX_TOKENS,
+            response_format={"type": "json_object"},
             messages=[
                 {"role": "system", "content": config.FORMATTER_SYSTEM_PROMPT},
-                {"role": "user", "content": raw_transcript},
+                {"role": "user", "content": f"<transcript>\n{raw_transcript}\n</transcript>"},
             ],
         )
-        formatted = (response.choices[0].message.content or "").strip()
+        content = response.choices[0].message.content
+        if content:
+            parsed = json.loads(content)
+            formatted = parsed.get("formatted_text", "").strip()
+        else:
+            formatted = ""
     except Exception as exc:
         print(f"Formatter failed, returning raw transcript: {exc}", flush=True)
         return raw_transcript
