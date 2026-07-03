@@ -90,9 +90,15 @@ To make it behave just like `Win + H`:
 
 ## ⚙️ Customization
 
+WayType features an easy-to-use GTK GUI for configuring your experience. Just click the system tray icon and open **Settings** to access:
+* **Format Text:** Toggle whether you want LLaMA to add punctuation and capitalization to your dictation, or just paste the raw Whisper output instantly.
+* **Listen Indefinitely:** Toggle whether WayType should automatically stop recording when you stop speaking. If turned on, you can speak as slowly as you like—simply press your global shortcut (`Super + H`) a second time to instantly stop recording and paste!
+* **Silence Cutoff:** If you prefer automatic cutoff, use this spinner to adjust exactly how many seconds of silence it takes to trigger the paste (from 0.5s to 10s).
+* **Audio/Visual Feedback:** Toggle the playback of Ubuntu system sounds and native desktop notifications.
+
+For advanced technical settings:
 * **Audio Alerts:** Use your own `.wav` files by editing the paths in `gui_daemon.py` or placing your sounds inside an `assets/` folder.
 * **Paste Delay:** Adjust `PASTE_DELAY_SECONDS` in `config.py` if your editor occasionally drops characters or misses the paste event.
-* **Silence Detection:** Tweak `SILENCE_DURATION_SECONDS` in `config.py` to control how long WayType waits before finishing a recording.
 
 ## 💡 Why WayType?
 

@@ -59,13 +59,13 @@ def trim_audio(frames: Sequence[bytes], vad: webrtcvad.Vad) -> list[bytes]:
     )
     return list(frames[first_speech_index : last_speech_index + 1])
 
-def record_until_silence(vad: webrtcvad.Vad) -> list[bytes]:
+def record_until_silence(vad: webrtcvad.Vad, listen_indefinitely: bool = False, silence_timeout: float = 1.0) -> list[bytes]:
     pre_speech_frames = max(1, int(config.PRE_SPEECH_DURATION * 1000 / config.FRAME_DURATION_MS))
     pre_buffer: Deque[bytes] = deque(maxlen=pre_speech_frames)
     recorded_frames: list[bytes] = []
     is_recording = False
     silent_frame_count = 0
-    silence_frame_limit = max(1, int(config.SILENCE_TIMEOUT * 1000 / config.FRAME_DURATION_MS))
+    silence_frame_limit = max(1, int(silence_timeout * 1000 / config.FRAME_DURATION_MS))
 
     with SuppressAlsaErr():
         audio = pyaudio.PyAudio()
@@ -113,7 +113,7 @@ def record_until_silence(vad: webrtcvad.Vad) -> list[bytes]:
                 continue
 
             silent_frame_count += 1
-            if silent_frame_count >= silence_frame_limit:
+            if not listen_indefinitely and silent_frame_count >= silence_frame_limit:
                 print("[Audio] Silence detected.", flush=True)
                 break
     except OSError as exc:

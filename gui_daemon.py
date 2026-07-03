@@ -23,7 +23,13 @@ SETTINGS_FILE = BASE_DIR / "settings.json"
 class VoiceTypingDaemon:
     def __init__(self):
         self.state = "idle"
-        self.settings = {"play_sounds": True, "show_notifications": True, "format_text": True}
+        self.settings = {
+            "play_sounds": True, 
+            "show_notifications": True, 
+            "format_text": True,
+            "listen_indefinitely": False,
+            "silence_timeout": 1.0
+        }
         self.load_settings()
         
         Notify.init("WayType")
@@ -111,9 +117,30 @@ class VoiceTypingDaemon:
         format_box.pack_start(format_label, False, False, 0)
         format_box.pack_end(format_switch, False, False, 0)
         
+        # Listen Indefinitely Toggle
+        indef_box = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=10)
+        indef_label = Gtk.Label(label="Listen Indefinitely (Double-tap to stop)")
+        indef_switch = Gtk.Switch()
+        indef_switch.set_active(self.settings.get("listen_indefinitely", False))
+        indef_switch.connect("notify::active", self.on_indef_toggled)
+        indef_box.pack_start(indef_label, False, False, 0)
+        indef_box.pack_end(indef_switch, False, False, 0)
+
+        # Silence Timeout Spinner
+        silence_box = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=10)
+        silence_label = Gtk.Label(label="Silence Cutoff (seconds)")
+        silence_adj = Gtk.Adjustment(value=self.settings.get("silence_timeout", 1.0), lower=0.5, upper=10.0, step_increment=0.5, page_increment=1.0, page_size=0.0)
+        self.silence_spin = Gtk.SpinButton(adjustment=silence_adj, numeric=True, digits=1)
+        self.silence_spin.connect("value-changed", self.on_silence_changed)
+        self.silence_spin.set_sensitive(not indef_switch.get_active())
+        silence_box.pack_start(silence_label, False, False, 0)
+        silence_box.pack_end(self.silence_spin, False, False, 0)
+        
         vbox.pack_start(sound_box, False, False, 0)
         vbox.pack_start(notif_box, False, False, 0)
         vbox.pack_start(format_box, False, False, 0)
+        vbox.pack_start(indef_box, False, False, 0)
+        vbox.pack_start(silence_box, False, False, 0)
         
         window.add(vbox)
         window.show_all()
@@ -128,6 +155,16 @@ class VoiceTypingDaemon:
 
     def on_format_toggled(self, switch, gparam):
         self.settings["format_text"] = switch.get_active()
+        self.save_settings()
+
+    def on_indef_toggled(self, switch, gparam):
+        is_active = switch.get_active()
+        self.settings["listen_indefinitely"] = is_active
+        self.silence_spin.set_sensitive(not is_active)
+        self.save_settings()
+
+    def on_silence_changed(self, spin_button):
+        self.settings["silence_timeout"] = spin_button.get_value()
         self.save_settings()
 
     def on_client_connect(self, source, condition):

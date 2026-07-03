@@ -51,13 +51,19 @@ def main() -> int:
 
         settings = load_settings()
         format_text = settings.get("format_text", True)
+        listen_indefinitely = settings.get("listen_indefinitely", False)
+        silence_timeout = settings.get("silence_timeout", 1.0)
 
         client = transcription.create_groq_client()
         vad = audio.create_vad()
 
         notify_gui("listening")
         t0 = time.time()
-        recorded_frames = audio.record_until_silence(vad)
+        recorded_frames = audio.record_until_silence(
+            vad, 
+            listen_indefinitely=listen_indefinitely, 
+            silence_timeout=silence_timeout
+        )
         
         with suppress(FileNotFoundError):
             pid_file.unlink()
