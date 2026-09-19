@@ -97,7 +97,7 @@ WayType features an easy-to-use GTK GUI for configuring your experience. Just cl
 * **Audio/Visual Feedback:** Toggle the playback of Ubuntu system sounds and native desktop notifications.
 
 For advanced technical settings:
-* **Audio Alerts:** Use your own `.wav` files by editing the paths in `gui_daemon.py` or placing your sounds inside an `assets/` folder.
+* **Audio Alerts:** Use your own `.wav` files by placing your sounds inside the `assets/` folder (`start.wav`, `complete.wav`).
 * **Paste Delay:** Adjust `PASTE_DELAY_SECONDS` in `config.py` if your editor occasionally drops characters or misses the paste event.
 
 ## 💡 Why WayType?
@@ -105,3 +105,41 @@ For advanced technical settings:
 After switching from Windows to Ubuntu, I found myself constantly missing the simplicity of the built-in **Win + H** voice typing experience.
 
 WayType was built to bring that same keyboard-first workflow to modern Wayland desktops while keeping the experience lightweight, responsive, and privacy-conscious by only sending audio to the configured transcription service when you explicitly trigger it.
+
+## 🗂 Project Structure
+
+```
+WayType/
+├── main.py              # Thin entry point
+├── config.py            # Env-var constants (audio, models, API key)
+├── run.sh               # Shell launcher (activates venv, runs main.py)
+│
+├── core/
+│   ├── pipeline.py      # Application orchestration
+│   ├── settings.py      # User settings load/save
+│   ├── ipc.py           # Unix socket client + state constants
+│   └── context.py       # Minimal runtime context (reserved for future use)
+│
+├── audio/
+│   └── audio.py         # Microphone capture, VAD, trimming, WAV I/O
+│
+├── speech/
+│   └── groq.py          # Groq Whisper transcription
+│
+├── processing/
+│   └── formatter.py     # Normal transcript formatter (LLM-based)
+│
+├── output/
+│   └── clipboard.py     # wl-copy + evdev Ctrl+V paste
+│
+├── ui/
+│   └── daemon.py        # GTK tray daemon (separate process)
+│
+├── prompts/
+│   ├── normal.json      # Formatter system prompt
+│   └── intelligent.json # Placeholder for future use
+│
+├── assets/              # Sound files (start.wav, complete.wav)
+└── systemd/
+    └── waytype-daemon.service
+```

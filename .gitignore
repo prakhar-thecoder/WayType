@@ -5,3 +5,5 @@ __pycache__/
 
 voice_typing_*.wav
 settings.json
+
+trials.py

@@ -1,3 +1,21 @@
+"""
+audio/audio.py
+
+Microphone capture, WebRTC VAD, recording, trimming, and WAV I/O.
+
+Responsibilities:
+  - Suppress ALSA error noise on startup
+  - Create a calibrated WebRTC VAD instance
+  - Record until silence (or manual stop via /tmp/waytype.stop)
+  - Pre-speech buffering to capture speech that started before VAD triggered
+  - Trim leading/trailing non-speech frames
+  - Write PCM frames to a temporary WAV file
+  - Clean up temporary WAV files
+
+Dependencies: config (constants only) — must not depend on ui, speech,
+processing, or output.
+"""
+
 import os
 import sys
 import wave
@@ -6,6 +24,7 @@ from collections import deque
 from contextlib import suppress
 from pathlib import Path
 from typing import Deque, Sequence
+
 
 class SuppressAlsaErr:
     def __enter__(self):
@@ -20,15 +39,18 @@ class SuppressAlsaErr:
         os.close(self.old_stderr)
         os.close(self.devnull)
 
+
 import pyaudio
 import webrtcvad
 
 import config
 
+
 def create_vad() -> webrtcvad.Vad:
     vad = webrtcvad.Vad()
     vad.set_mode(config.VAD_MODE)
     return vad
+
 
 def create_temp_wav_path() -> Path:
     with tempfile.NamedTemporaryFile(
@@ -38,12 +60,14 @@ def create_temp_wav_path() -> Path:
     ) as temp_file:
         return Path(temp_file.name)
 
+
 def save_wav(frames: Sequence[bytes], file_path: Path) -> None:
     with wave.open(str(file_path), "wb") as wav_file:
         wav_file.setnchannels(config.CHANNELS)
         wav_file.setsampwidth(config.SAMPLE_WIDTH_BYTES)
         wav_file.setframerate(config.SAMPLE_RATE)
         wav_file.writeframes(b"".join(frames))
+
 
 def trim_audio(frames: Sequence[bytes], vad: webrtcvad.Vad) -> list[bytes]:
     if not frames:
@@ -59,7 +83,12 @@ def trim_audio(frames: Sequence[bytes], vad: webrtcvad.Vad) -> list[bytes]:
     )
     return list(frames[first_speech_index : last_speech_index + 1])
 
-def record_until_silence(vad: webrtcvad.Vad, listen_indefinitely: bool = False, silence_timeout: float = 1.0) -> list[bytes]:
+
+def record_until_silence(
+    vad: webrtcvad.Vad,
+    listen_indefinitely: bool = False,
+    silence_timeout: float = 1.0,
+) -> list[bytes]:
     pre_speech_frames = max(1, int(config.PRE_SPEECH_DURATION * 1000 / config.FRAME_DURATION_MS))
     pre_buffer: Deque[bytes] = deque(maxlen=pre_speech_frames)
     recorded_frames: list[bytes] = []
@@ -128,6 +157,7 @@ def record_until_silence(vad: webrtcvad.Vad, listen_indefinitely: bool = False, 
             audio.terminate()
 
     return recorded_frames
+
 
 def cleanup(temp_path: Path | None) -> None:
     if temp_path is None:
