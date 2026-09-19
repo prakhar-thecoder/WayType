@@ -15,7 +15,7 @@ VAD_MODE = int(os.getenv("VAD_MODE", "2"))
 PASTE_DELAY_SECONDS = float(os.getenv("PASTE_DELAY_SECONDS", "0.05"))
 
 WHISPER_MODEL = os.getenv("WHISPER_MODEL", "whisper-large-v3-turbo")
-FORMATTER_MODEL = os.getenv("FORMATTER_MODEL", "meta-llama/llama-4-scout-17b-16e-instruct")
+FORMATTER_MODEL = os.getenv("FORMATTER_MODEL", "openai/gpt-oss-120b")
 MAX_TOKENS = int(os.getenv("MAX_TOKENS", "8192"))
 TEMPERATURE = float(os.getenv("TEMPERATURE", "0.0"))
 
