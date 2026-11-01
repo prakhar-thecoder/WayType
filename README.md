@@ -1,145 +1,157 @@
-# WayType 🎙️
+# WayType
 
-**The lightning-fast `Windows + H` voice typing alternative for Wayland desktops.**
+WayType is a Linux Wayland voice-typing utility. It uses the Voxora Python
+SDK as its sole speech-to-text engine and keeps desktop integration in the
+WayType application.
 
-WayType is a modular, high-performance voice dictation engine designed for modern Linux desktops running Wayland. It leverages the blazingly fast Groq Whisper API to transcribe your speech, formats it using Llama, and securely injects the text directly into the application you're focused on using native Wayland-compatible input methods.
+## Features
 
-It brings a seamless, keyboard-shortcut-driven voice typing experience to Linux, complete with a lightweight background system tray daemon and non-intrusive 3-state audio feedback.
+- Microphone capture, VAD, Groq Whisper transcription, and optional transcript
+  formatting through Voxora.
+- Clipboard copying with `wl-copy`.
+- Keyboard simulation with `evdev` where required to paste into the focused
+  application.
+- GTK3 system-tray daemon with desktop notifications and audio feedback.
+- GUI settings for formatting, recording mode, silence cutoff, sounds, and
+  notifications.
 
-## ✨ Features
+## Tech stack
 
-* **Native Wayland Support**: Safely uses `wl-copy` and `evdev` to paste text directly, bypassing the limitations of traditional X11 macro tools on Wayland.
-* **Ultra-Low Latency**: Powered by Groq's incredibly fast Whisper API. Dictation typically appears almost instantly after you finish speaking.
-* **Auto-Formatting**: Uses Llama to intelligently add punctuation and capitalization to your raw speech before pasting.
-* **Background Daemon**: A lightweight GTK3 system tray indicator that visually shows whether WayType is idle, listening, or processing.
-* **Asynchronous Audio Feedback**: Plays built-in Ubuntu system sounds (`bell`, `message`, `complete`) to guide you without stealing focus.
+| Area | Technology |
+| --- | --- |
+| Speech-to-text | Voxora SDK with Groq Whisper |
+| Audio and VAD | Voxora, PyAudio, WebRTC VAD |
+| Desktop | Linux, Wayland, GTK3, Ayatana AppIndicator |
+| Clipboard | `wl-copy` from `wl-clipboard` |
+| Keyboard input | `evdev` |
+| Notifications and sounds | GTK/ libnotify and `paplay` |
 
-## 🛠 Prerequisites
+## Prerequisites
 
-Ensure you have the following system dependencies installed:
+Install the system packages used by WayType's desktop integration:
 
 ```bash
-# Core Wayland and Audio tools
-sudo apt install wl-clipboard pulseaudio-utils
-
-# GTK dependencies for the System Tray daemon
-sudo apt install python3-gi gir1.2-gtk-3.0 gir1.2-ayatanaappindicator3-0.1
+sudo apt install wl-clipboard pulseaudio-utils \
+  python3-gi gir1.2-gtk-3.0 gir1.2-ayatanaappindicator3-0.1
 ```
 
-## 🚀 Installation
+Use Python 3.10 or newer. Voxora, PyAudio, WebRTC VAD, Groq, OpenAI-compatible
+formatting support, `python-dotenv`, and `evdev` are installed from
+`requirements.txt`.
 
-> **Tested on Python 3.10.** Other Python versions may work but have not been officially tested.
-
-1. **Clone the repository:**
+## Installation
 
 ```bash
 git clone https://github.com/prakhar-thecoder/WayType.git
 cd WayType
-```
-
-2. **Set up the Python virtual environment:**
-
-```bash
 python3 -m venv venv
 source venv/bin/activate
 pip install -r requirements.txt
 ```
 
-3. **Configure your API key:**
+The requirements file installs the published `voxora` package from PyPI; a
+separate Voxora checkout is not required.
+
+Configure the Groq key:
 
 ```bash
 cp .env.example .env
-# Edit .env and insert your Groq API Key
-nano .env
+# Edit .env and set GROQ_API_KEY
 ```
 
-## 🖥 Setting up the Background Daemon
+## Configuration
 
-To get the system tray icon and audio feedback, run the daemon as a systemd user service so it starts automatically in the background.
+The GTK daemon persists user-facing settings in `settings.json`:
 
-1. **Copy the provided service file:**
+| Setting | Effect |
+| --- | --- |
+| `format_text` | Enables or disables Voxora transcript formatting. |
+| `listen_indefinitely` | Uses manual start/stop recording controlled by the existing stop-file workflow. |
+| `silence_timeout` | Sets the VAD silence cutoff when automatic recording is enabled. |
+| `play_sounds` | Enables or disables audio feedback. |
+| `show_notifications` | Enables or disables desktop notifications. |
 
-```bash
-mkdir -p ~/.config/systemd/user/
-cp systemd/waytype-daemon.service ~/.config/systemd/user/
+Advanced Voxora defaults are read from `.env` by `config.py`:
+
+```text
+GROQ_API_KEY              Required Groq API key
+WHISPER_MODEL             Whisper model, default: whisper-large-v3-turbo
+STT_LANGUAGE              Optional language hint; use this name in `.env`
+VAD_MODE                  WebRTC VAD mode, default: 2
+SAMPLE_RATE               Capture rate, default: 16000
+FRAME_DURATION_MS         Frame duration, default: 20
+PRE_SPEECH_DURATION       Pre-speech buffer, default: 0.3
+MAX_RECORDING_DURATION    Maximum automatic recording duration, default: 300
+SPEECH_START_TIMEOUT      Initial speech timeout, default: 10
+FORMAT_BASE_URL           Compatible formatter endpoint
+FORMAT_MODEL              Formatter model, default: openai/gpt-oss-120b
+FORMAT_API_KEY            Optional formatter key; falls back to GROQ_API_KEY
+PASTE_DELAY_SECONDS       Delay before keyboard simulation, default: 0.05
 ```
 
-2. **Update the service file paths.**
+Audio is sent to Groq's cloud API for transcription. Formatting, when enabled,
+receives the transcript after transcription and requires a compatible network
+endpoint.
 
-> **Important:** The provided `waytype-daemon.service` file contains the development paths from my machine (`/home/prakhar/Projects/WayType`). Before enabling the service, you **must** update both the `ExecStart` and `WorkingDirectory` entries to match the location where you cloned WayType.
+If `.env.example` contains `LANGUAGE`, rename that key to `STT_LANGUAGE`; the
+runtime configuration uses `STT_LANGUAGE`.
 
-3. **Enable and start the service:**
+## GTK daemon
+
+The systemd unit starts only the GTK tray daemon. It does not run the dictation
+pipeline; the global shortcut launches `run.sh`.
+
+Install the unit using the current checkout path rather than assuming a fixed
+home directory:
 
 ```bash
+WAYTYPE_DIR="$(pwd)"
+mkdir -p ~/.config/systemd/user
+sed "s|/home/prakhar/Projects/WayType|$WAYTYPE_DIR|g" \
+  systemd/waytype-daemon.service \
+  > ~/.config/systemd/user/waytype-daemon.service
 systemctl --user daemon-reload
-systemctl --user enable --now waytype-daemon.service
+systemctl --user enable waytype-daemon.service
+systemctl --user start waytype-daemon.service
 ```
 
-## ⌨️ Creating the Global Keyboard Shortcut
+The unit uses `$WAYTYPE_DIR/venv/bin/python` and `$WAYTYPE_DIR` as its working
+directory after the substitution. If the service is already active and the
+unit changed, reload it and restart it deliberately rather than interrupting
+an active desktop session unexpectedly.
 
-To make it behave just like `Win + H`:
+## Keyboard shortcut
 
-1. Open **Settings → Keyboard → View and Customize Shortcuts → Custom Shortcuts**.
-2. Click **Add Shortcut**.
-3. **Name:** `WayType Voice Dictation`
-4. **Command:** `/absolute/path/to/WayType/run.sh` *(replace this with the actual path where you cloned the repository).*
-5. **Shortcut:** Press `Super + H` (or any shortcut you prefer).
-6. Click **Add**.
+Add a desktop custom shortcut for:
 
-**You're done!** Press your shortcut anywhere in your desktop to trigger the microphone. You'll hear a bell, the tray icon will change state, and you can start speaking.
-
-## ⚙️ Customization
-
-WayType features an easy-to-use GTK GUI for configuring your experience. Just click the system tray icon and open **Settings** to access:
-* **Format Text:** Toggle whether you want LLaMA to add punctuation and capitalization to your dictation, or just paste the raw Whisper output instantly.
-* **Listen Indefinitely:** Toggle whether WayType should automatically stop recording when you stop speaking. If turned on, you can speak as slowly as you like—simply press your global shortcut (`Super + H`) a second time to instantly stop recording and paste!
-* **Silence Cutoff:** If you prefer automatic cutoff, use this spinner to adjust exactly how many seconds of silence it takes to trigger the paste (from 0.5s to 10s).
-* **Audio/Visual Feedback:** Toggle the playback of Ubuntu system sounds and native desktop notifications.
-
-For advanced technical settings:
-* **Audio Alerts:** Use your own `.wav` files by placing your sounds inside the `assets/` folder (`start.wav`, `complete.wav`).
-* **Paste Delay:** Adjust `PASTE_DELAY_SECONDS` in `config.py` if your editor occasionally drops characters or misses the paste event.
-
-## 💡 Why WayType?
-
-After switching from Windows to Ubuntu, I found myself constantly missing the simplicity of the built-in **Win + H** voice typing experience.
-
-WayType was built to bring that same keyboard-first workflow to modern Wayland desktops while keeping the experience lightweight, responsive, and privacy-conscious by only sending audio to the configured transcription service when you explicitly trigger it.
-
-## 🗂 Project Structure
-
+```text
+/absolute/path/to/WayType/run.sh
 ```
+
+For example, bind it to `Super+H`. A second activation stops an active
+“listen indefinitely” session through WayType's existing stop-file workflow.
+
+## Project structure
+
+```text
 WayType/
-├── main.py              # Thin entry point
-├── config.py            # Env-var constants (audio, models, API key)
-├── run.sh               # Shell launcher (activates venv, runs main.py)
-│
+├── main.py                         # Dictation entry point
+├── config.py                       # Environment-backed Voxora defaults
+├── run.sh                          # Activates venv and runs main.py
+├── settings.json                   # GUI/user settings
 ├── core/
-│   ├── pipeline.py      # Application orchestration
-│   ├── settings.py      # User settings load/save
-│   ├── ipc.py           # Unix socket client + state constants
-│   └── context.py       # Minimal runtime context (reserved for future use)
-│
-├── audio/
-│   └── audio.py         # Microphone capture, VAD, trimming, WAV I/O
-│
-├── speech/
-│   └── groq.py          # Groq Whisper transcription
-│
-├── processing/
-│   └── formatter.py     # Normal transcript formatter (LLM-based)
-│
+│   ├── pipeline.py                 # Voxora orchestration and desktop flow
+│   ├── settings.py                 # settings.json load/save
+│   ├── ipc.py                      # GTK daemon state notifications
+│   └── context.py                  # Reserved runtime context
 ├── output/
-│   └── clipboard.py     # wl-copy + evdev Ctrl+V paste
-│
+│   └── clipboard.py                # wl-copy and evdev paste
 ├── ui/
-│   └── daemon.py        # GTK tray daemon (separate process)
-│
-├── prompts/
-│   ├── normal.json      # Formatter system prompt
-│   └── intelligent.json # Placeholder for future use
-│
-├── assets/              # Sound files (start.wav, complete.wav)
+│   └── daemon.py                   # GTK system-tray daemon
+├── assets/                         # Audio feedback files
 └── systemd/
-    └── waytype-daemon.service
+    └── waytype-daemon.service      # User service template
 ```
+
+WayType does not contain a second microphone, VAD, transcription, or formatter
+implementation; those responsibilities belong to Voxora.
