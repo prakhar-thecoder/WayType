@@ -44,7 +44,7 @@ formatting support, `python-dotenv`, and `evdev` are installed from
 ```bash
 git clone https://github.com/prakhar-thecoder/WayType.git
 cd WayType
-python3 -m venv venv
+python3 -m venv --system-site-packages venv
 source venv/bin/activate
 pip install -r requirements.txt
 ```
